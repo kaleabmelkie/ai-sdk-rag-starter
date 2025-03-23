@@ -14,8 +14,8 @@ export function ChatLayout({
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {header && (
-        <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 py-4 px-4">
-          {header}
+        <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 py-2 px-3">
+          <div className="max-w-4xl mx-auto">{header}</div>
         </header>
       )}
 
