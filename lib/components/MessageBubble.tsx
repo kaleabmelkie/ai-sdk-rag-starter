@@ -25,7 +25,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
     return (
       <div className="mt-2 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between px-3 py-2 bg-gray-200 dark:bg-gray-700">
+        <div className="flex items-center justify-between gap-8 px-3 py-2 bg-gray-200 dark:bg-gray-700">
           <div className="font-medium">{toolName}</div>
           {state === "result" ? (
             <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full">
@@ -51,7 +51,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                   </pre>
                 ))}
               </div>
-            ) : null}
+            ) : (
+              <div className="whitespace-pre-wrap">
+                Running <q>{toolInvocation.toolName}</q>...
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -78,7 +82,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         )}
         {content?.length ? (
           <div
-            className={`prose ${
+            className={`prose text-lg/8 font-light ${
               !isUser ? "prose-dark" : "prose-invert"
             } max-w-none`}
           >

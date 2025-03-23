@@ -33,8 +33,8 @@ export const findRelevantContent = async (userQuery: string) => {
     .limit(200) // Retrieve more candidates initially
     .execute();
 
-  // Take top 4 with highest confidence
-  const topResults = similarGuides.slice(0, 10);
+  // Take top 14 with highest confidence
+  const topResults = similarGuides.slice(0, 14);
 
   console.log({ topResults }); // TODO: Remove
 

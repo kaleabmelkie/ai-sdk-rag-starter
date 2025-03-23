@@ -5,25 +5,23 @@ import { textOcr } from "@/lib/ai/ocr";
 import { EtLawsChunk } from "@/lib/types/et-laws-chunk";
 import { generateObject, jsonSchema } from "ai";
 
-export async function extractLawText(formData: FormData) {
+export async function extractLawText(url: string) {
   try {
-    const file = formData.get("file") as File;
-    if (!file) {
+    if (!url) {
       return {
         success: false,
-        error: "No file provided",
-      };
-    }
-    if (!file.type.includes("pdf")) {
-      return {
-        success: false,
-        error: "Only PDF files are supported",
+        error: "No URL provided",
       };
     }
 
-    const fullMarkdown = await textOcr(
-      "https://api.mekdesmezgebu.com/uploads/NBE_Foreign_Exchange_Directive_01_2024_7bfd095c57.pdf"
-    );
+    if (!url.toLowerCase().endsWith(".pdf")) {
+      return {
+        success: false,
+        error: "Only PDF URLs are supported",
+      };
+    }
+
+    const fullMarkdown = await textOcr(url);
 
     console.log(fullMarkdown);
 
@@ -43,7 +41,7 @@ export async function extractLawText(formData: FormData) {
 export async function processLawText(text: string) {
   try {
     const result = await generateObject<typeof etLawsChunkSchema._type>({
-      model: openai.chat("gpt-4o-mini", {}),
+      model: openai.chat("o3-mini", { reasoningEffort: "high" }),
       temperature: 0,
       presencePenalty: 1,
       maxRetries: 3,
@@ -79,9 +77,9 @@ const etLawsChunkSchema = jsonSchema<{ chunks: EtLawsChunk[] }>({
       items: {
         type: "object",
         properties: {
-          partNumber: { type: "number" },
+          partNumber: { type: "string" },
           partTitle: { type: "string" },
-          sectionNumber: { type: "number" },
+          sectionNumber: { type: "string" },
           sectionTitle: { type: "string" },
           content: { type: "string" },
           subsections: {
@@ -109,7 +107,7 @@ const etLawsChunkSchema = jsonSchema<{ chunks: EtLawsChunk[] }>({
     subsectionSchema: {
       type: "object",
       properties: {
-        subsectionNumber: { type: "number" },
+        subsectionNumber: { type: "string" },
         subsectionContent: { type: "string" },
         subsections: {
           type: "array",
@@ -125,9 +123,9 @@ const etLawsChunkSchema = jsonSchema<{ chunks: EtLawsChunk[] }>({
 });
 
 // Keeping the original function for backward compatibility
-export async function processLawDocument(formData: FormData) {
+export async function processLawDocument(url: string) {
   try {
-    const extractResult = await extractLawText(formData);
+    const extractResult = await extractLawText(url);
     if (!extractResult.success) {
       return extractResult;
     }

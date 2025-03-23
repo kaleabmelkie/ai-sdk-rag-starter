@@ -1,14 +1,14 @@
 export type EtLawsChunk = {
-  partNumber: number;
+  partNumber: string;
   partTitle: string;
-  sectionNumber: number;
+  sectionNumber: string;
   sectionTitle: string;
   content: string;
   subsections: EtLawsSubsection[];
 };
 
 export type EtLawsSubsection = {
-  subsectionNumber: number | string;
+  subsectionNumber: string;
   subsectionContent: string;
   subsections: EtLawsSubsection[];
 };

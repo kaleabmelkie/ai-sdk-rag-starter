@@ -1,11 +1,11 @@
-import { etLawsSampleData } from "@/lib/ai/et-laws/et-laws-sample-data";
+import { law3 } from "@/lib/ai/et-laws/data/law3";
 import { generateEmbeddingsForEtLaws } from "@/lib/ai/et-laws/generate-embeddings-for-et-laws";
 import { db } from "@/lib/db";
 import { embeddings as embeddingsTable } from "@/lib/db/schema/embeddings";
 import { resources } from "@/lib/db/schema/resources";
 
 async function main() {
-  const embeddings = await generateEmbeddingsForEtLaws(etLawsSampleData);
+  const embeddings = await generateEmbeddingsForEtLaws(law3);
   const content = embeddings.map((e) => e.content).join("\n");
 
   console.log({

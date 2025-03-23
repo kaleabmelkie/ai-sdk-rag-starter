@@ -5,7 +5,7 @@ import type { EtLawsChunk } from "@/lib/types/et-laws-chunk";
 import { useState } from "react";
 
 export default function LawParserPage() {
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState<string | null>(null);
@@ -19,7 +19,7 @@ export default function LawParserPage() {
     setChunks(null);
 
     try {
-      const response = await extractLawText(new FormData(e.currentTarget));
+      const response = await extractLawText(pdfUrl);
       if (response.success && response.text) {
         setExtractedText(response.text);
       } else {
@@ -65,30 +65,26 @@ export default function LawParserPage() {
 
       {!extractedText && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
-          <form
-            className="space-y-4"
-            encType="multipart/form-data"
-            onSubmit={handleExtract}
-          >
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
-              <label className="block mb-4">
-                <span className="text-gray-700 dark:text-gray-200 mb-2 block">
-                  Upload a PDF law document
-                </span>
-                <input
-                  type="file"
-                  name="file"
-                  accept="application/pdf"
-                  onChange={(e) =>
-                    setFileName(e.target.files?.[0]?.name ?? null)
-                  }
-                  className="hidden"
-                  required
-                />
-                <div className="flex flex-col items-center justify-center">
+          <form className="space-y-4" onSubmit={handleExtract}>
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8">
+              <div className="flex flex-col space-y-4">
+                <label className="block">
+                  <span className="text-gray-700 dark:text-gray-200 mb-2 block">
+                    Enter PDF Document URL
+                  </span>
+                  <input
+                    type="url"
+                    value={pdfUrl}
+                    onChange={(e) => setPdfUrl(e.target.value)}
+                    placeholder="https://example.com/document.pdf"
+                    className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </label>
+                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-12 w-12 text-gray-400 mb-3"
+                    className="h-5 w-5 mr-2"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -97,25 +93,18 @@ export default function LawParserPage() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  <span className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg cursor-pointer transition-colors">
-                    Select PDF File
-                  </span>
-                  {fileName && (
-                    <span className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                      {fileName}
-                    </span>
-                  )}
+                  <span>URL must point directly to a PDF file</span>
                 </div>
-              </label>
+              </div>
             </div>
 
             <div className="flex justify-center">
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !pdfUrl}
                 className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading ? (
@@ -170,6 +159,15 @@ export default function LawParserPage() {
               value={extractedText}
               onChange={(e) => setExtractedText(e.target.value)}
             ></textarea>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              {Intl.NumberFormat("en-US").format(
+                extractedText
+                  .split(/[\s\n]+/)
+                  .map((w) => w.trim())
+                  .filter(Boolean).length
+              )}{" "}
+              words
+            </div>
           </div>
 
           <div className="flex justify-between">
