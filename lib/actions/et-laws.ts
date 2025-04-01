@@ -1,9 +1,14 @@
 "use server";
 
-import { openai } from "@/lib/ai/models";
 import { textOcr } from "@/lib/ai/ocr";
-import { EtLawsChunk } from "@/lib/types/et-laws-chunk";
+import {
+  EtLawsChunk,
+  EtLawsSection,
+  EtLawsSubsection,
+} from "@/lib/types/et-laws-chunk";
 import { generateObject, jsonSchema } from "ai";
+import { google } from "../ai/models";
+import { z } from "zod";
 
 export async function extractLawText(url: string) {
   try {
@@ -11,14 +16,14 @@ export async function extractLawText(url: string) {
       return {
         success: false,
         error: "No URL provided",
-      };
+      } as const;
     }
 
     if (!url.toLowerCase().endsWith(".pdf")) {
       return {
         success: false,
         error: "Only PDF URLs are supported",
-      };
+      } as const;
     }
 
     const fullMarkdown = await textOcr(url);
@@ -40,10 +45,12 @@ export async function extractLawText(url: string) {
 
 export async function processLawText(text: string) {
   try {
-    const result = await generateObject<typeof etLawsChunkSchema._type>({
-      model: openai.chat("o3-mini", { reasoningEffort: "high" }),
+    const result = await generateObject<EtLawsChunkSchema>({
+      model: google.chat("gemini-2.5-pro-exp-03-25", {
+        useSearchGrounding: false,
+        structuredOutputs: false,
+      }),
       temperature: 0,
-      presencePenalty: 1,
       maxRetries: 3,
       mode: "json",
       output: "object",
@@ -58,7 +65,7 @@ export async function processLawText(text: string) {
 
     return {
       success: true,
-      chunks: result.object.chunks,
+      chunks: result.object.chunks as EtLawsChunk[],
     } as const;
   } catch (error) {
     console.error("Error processing law text:", error);
@@ -69,80 +76,33 @@ export async function processLawText(text: string) {
   }
 }
 
-const etLawsChunkSchema = jsonSchema<{ chunks: EtLawsChunk[] }>({
-  type: "object",
-  properties: {
-    chunks: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          partNumber: { type: "string" },
-          partTitle: { type: "string" },
-          sectionNumber: { type: "string" },
-          sectionTitle: { type: "string" },
-          content: { type: "string" },
-          subsections: {
-            type: "array",
-            items: {
-              $ref: "#/definitions/subsectionSchema",
-            },
-          },
-        },
-        required: [
-          "partNumber",
-          "partTitle",
-          "sectionNumber",
-          "sectionTitle",
-          "content",
-          "subsections",
-        ],
-        additionalProperties: false,
-      },
-    },
-  },
-  required: ["chunks"],
-  additionalProperties: false,
-  definitions: {
-    subsectionSchema: {
-      type: "object",
-      properties: {
-        subsectionNumber: { type: "string" },
-        subsectionContent: { type: "string" },
-        subsections: {
-          type: "array",
-          items: {
-            $ref: "#/definitions/subsectionSchema",
-          },
-        },
-      },
-      required: ["subsectionNumber", "subsectionContent", "subsections"],
-      additionalProperties: false,
-    },
-  },
+// Define schemas that match our type definitions
+const subsectionSchema: z.ZodType<EtLawsSubsection> = z.lazy(() =>
+  z.object({
+    id: z.string(),
+    number: z.string(),
+    content: z.string(),
+    subsections: z.array(subsectionSchema),
+  })
+);
+
+const sectionSchema: z.ZodType<EtLawsSection> = z.object({
+  id: z.string(),
+  number: z.string(),
+  title: z.string(),
+  content: z.string(),
+  subsections: z.array(subsectionSchema),
 });
 
-// Keeping the original function for backward compatibility
-export async function processLawDocument(url: string) {
-  try {
-    const extractResult = await extractLawText(url);
-    if (!extractResult.success) {
-      return extractResult;
-    }
+const etLawsChunkSchema: z.ZodType<{ chunks: EtLawsChunk[] }> = z.object({
+  chunks: z.array(
+    z.object({
+      id: z.string(),
+      number: z.string(),
+      title: z.string(),
+      sections: z.array(sectionSchema),
+    })
+  ),
+});
 
-    if (!extractResult.text) {
-      return {
-        success: false,
-        error: "No text extracted",
-      } as const;
-    }
-
-    return processLawText(extractResult.text);
-  } catch (error) {
-    console.error("Error processing law document:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    } as const;
-  }
-}
+type EtLawsChunkSchema = { chunks: EtLawsChunk[] };

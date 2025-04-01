@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS "embeddings" (
 	"id" varchar(21) PRIMARY KEY NOT NULL,
 	"resource_id" varchar(21),
 	"content" text NOT NULL,
-	"embedding" vector(2000) NOT NULL
+	"embedding" vector(768) NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "resources" (
@@ -18,4 +18,4 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "embeddingIndex" ON "embeddings" USING ivfflat ("embedding" vector_cosine_ops);
+CREATE INDEX IF NOT EXISTS "embeddingIndex" ON "embeddings" USING hnsw ("embedding" vector_cosine_ops);

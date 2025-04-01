@@ -1,15 +1,12 @@
 import { db } from "@/lib/db";
 import { embeddings } from "@/lib/db/schema/embeddings";
-import { openai } from "@ai-sdk/openai";
 import { embed } from "ai";
 import { cosineDistance, desc, gt, sql } from "drizzle-orm";
+import { google } from "./models";
 
-export const embeddingModel = openai.textEmbeddingModel(
-  "text-embedding-3-large",
-  {
-    dimensions: 2000,
-  }
-);
+export const embeddingModel = google.textEmbeddingModel("text-embedding-004", {
+  outputDimensionality: 768,
+});
 
 export const findRelevantContent = async (userQuery: string) => {
   const { embedding: userQueryEmbedding } = await embed({
@@ -22,8 +19,8 @@ export const findRelevantContent = async (userQuery: string) => {
     userQueryEmbedding
   )})`;
 
-  // Set probes parameter for higher accuracy
-  await db.execute(sql`SET ivfflat.probes = 100;`);
+  // Set ef_search parameter for maximum accuracy with HNSW (disregarding performance)
+  await db.execute(sql`SET hnsw.ef_search = 500;`);
 
   const similarGuides = await db
     .select({ name: embeddings.content, similarity })

@@ -1,7 +1,11 @@
 "use client";
 
 import { extractLawText, processLawText } from "@/lib/actions/et-laws";
-import type { EtLawsChunk } from "@/lib/types/et-laws-chunk";
+import type {
+  EtLawsChunk,
+  EtLawsSection,
+  EtLawsSubsection,
+} from "@/lib/types/et-laws-chunk";
 import { useState } from "react";
 
 export default function LawParserPage() {
@@ -229,26 +233,32 @@ export default function LawParserPage() {
           </div>
 
           <div className="overflow-auto max-h-[600px]">
-            {chunks.map((chuck, index) => (
+            {chunks.map((part, index) => (
               <div key={index} className="mb-8 border-b pb-6 last:border-b-0">
                 <div className="mb-4">
                   <h3 className="text-lg font-medium">
-                    Part {chuck.partNumber}: {chuck.partTitle}
+                    Part {part.number}: {part.title}
                   </h3>
-                  <h4 className="text-md font-medium mt-2">
-                    Section {chuck.sectionNumber}: {chuck.sectionTitle}
-                  </h4>
-                  <p className="mt-2 text-gray-700 dark:text-gray-300">
-                    {chuck.content}
-                  </p>
-                </div>
+                  {part.sections.map((section, sIndex) => (
+                    <div key={sIndex} className="mt-4">
+                      <h4 className="text-md font-medium mt-2">
+                        Section {section.number}: {section.title}
+                      </h4>
+                      <p className="mt-2 text-gray-700 dark:text-gray-300">
+                        {section.content}
+                      </p>
 
-                {chuck.subsections.length > 0 && (
-                  <div className="pl-6 border-l-2 border-gray-200 dark:border-gray-700">
-                    <h5 className="font-medium mb-2">Subsections:</h5>
-                    <RenderSubsections subsections={chuck.subsections} />
-                  </div>
-                )}
+                      {section.subsections.length > 0 && (
+                        <div className="pl-6 border-l-2 border-gray-200 dark:border-gray-700 mt-3">
+                          <h5 className="font-medium mb-2">Subsections:</h5>
+                          <RenderSubsections
+                            subsections={section.subsections}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -301,7 +311,7 @@ function RenderSubsections({
   subsections,
   depth = 0,
 }: {
-  subsections: any[];
+  subsections: EtLawsSubsection[];
   depth?: number;
 }) {
   if (!subsections || subsections.length === 0) return null;
@@ -313,11 +323,9 @@ function RenderSubsections({
           key={index}
           className="border-l-2 border-gray-200 dark:border-gray-700 pl-4 py-1"
         >
-          <div className="font-medium">
-            Subsection {subsection.subsectionNumber}
-          </div>
+          <div className="font-medium">Subsection {subsection.number}</div>
           <p className="text-gray-700 dark:text-gray-300 mt-1">
-            {subsection.subsectionContent}
+            {subsection.content}
           </p>
 
           {subsection.subsections && subsection.subsections.length > 0 && (

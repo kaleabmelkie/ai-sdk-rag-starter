@@ -13,11 +13,11 @@ export const embeddings = pgTable(
       { onDelete: "cascade" }
     ),
     content: text("content").notNull(),
-    embedding: vector("embedding", { dimensions: 2000 }).notNull(),
+    embedding: vector("embedding", { dimensions: 768 }).notNull(),
   },
   (table) => ({
     embeddingIndex: index("embeddingIndex").using(
-      "ivfflat",
+      "hnsw",
       table.embedding.op("vector_cosine_ops")
     ),
   })

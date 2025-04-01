@@ -1,5 +1,5 @@
 import { findRelevantContent } from "@/lib/ai/embedding";
-import { openai } from "@/lib/ai/models";
+import { google } from "@/lib/ai/models";
 import { streamText, tool } from "ai";
 import { z } from "zod";
 
@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai("gpt-4o-mini"),
+    model: google("gemini-2.5-pro-exp-03-25"),
     system: `You are a helpful assistant. Check your knowledge base before answering any questions.
 Try your best to respond to questions using information from tool calls.`,
     messages,
