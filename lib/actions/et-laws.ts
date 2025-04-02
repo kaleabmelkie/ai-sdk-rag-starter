@@ -1,49 +1,15 @@
 "use server";
 
-import { textOcr } from "@/lib/ai/ocr";
 import {
   EtLawsChunk,
   EtLawsSection,
   EtLawsSubsection,
 } from "@/lib/types/et-laws-chunk";
-import { generateObject, jsonSchema } from "ai";
-import { google } from "../ai/models";
+import { generateObject } from "ai";
 import { z } from "zod";
+import { google } from "../ai/models";
 
-export async function extractLawText(url: string) {
-  try {
-    if (!url) {
-      return {
-        success: false,
-        error: "No URL provided",
-      } as const;
-    }
-
-    if (!url.toLowerCase().endsWith(".pdf")) {
-      return {
-        success: false,
-        error: "Only PDF URLs are supported",
-      } as const;
-    }
-
-    const fullMarkdown = await textOcr(url);
-
-    console.log(fullMarkdown);
-
-    return {
-      success: true,
-      text: fullMarkdown,
-    } as const;
-  } catch (error) {
-    console.error("Error extracting law text:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    } as const;
-  }
-}
-
-export async function processLawText(text: string) {
+export async function processLawText(fileUrl: string) {
   try {
     const result = await generateObject<EtLawsChunkSchema>({
       model: google.chat("gemini-2.5-pro-exp-03-25", {
@@ -56,8 +22,27 @@ export async function processLawText(text: string) {
       output: "object",
       schema: etLawsChunkSchema,
       schemaName: "Law",
-      system: `You are a precise legal document parser. Extract the content from the provided law document and structure it exactly according to the provided schema. Maintain the exact verbatim text from the document. Do not summarize or paraphrase. Use your understanding of the contents of the document only to structure the output in an accurate hierarchy.`,
-      prompt: `Parse the following law document into the required JSON structure:\n\n\`\`\`markdown\n${text}\n\`\`\``,
+      messages: [
+        {
+          role: "system",
+          content: `You are a precise legal document parser. Extract the content from the provided law document and structure it exactly according to the provided schema. Maintain the exact verbatim text from the document. Do not summarize or paraphrase. Use your understanding of the contents of the document only to structure the output in an accurate hierarchy.`,
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Parse the attached law document into the required JSON structure. Focus only on the English sections of the document and discard any Amharic text. Only extract and structure the English language content.`,
+              // If the document doesn't explicitly define parts, assume it's a single part and structure it accordingly with appropriate part number and title.
+            },
+            {
+              type: "file",
+              data: fileUrl,
+              mimeType: "application/pdf",
+            },
+          ],
+        },
+      ],
     });
 
     console.log(result);

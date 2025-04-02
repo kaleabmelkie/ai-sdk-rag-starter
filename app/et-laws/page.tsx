@@ -1,6 +1,6 @@
 "use client";
 
-import { extractLawText, processLawText } from "@/lib/actions/et-laws";
+import { processLawText } from "@/lib/actions/et-laws";
 import type {
   EtLawsChunk,
   EtLawsSection,
@@ -12,47 +12,22 @@ export default function LawParserPage() {
   const [pdfUrl, setPdfUrl] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [extractedText, setExtractedText] = useState<string | null>(null);
   const [chunks, setChunks] = useState<EtLawsChunk[] | null>(null);
 
-  async function handleExtract(e: React.FormEvent<HTMLFormElement>) {
+  async function handleProcess(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    setExtractedText(null);
     setChunks(null);
 
     try {
-      const response = await extractLawText(pdfUrl);
-      if (response.success && response.text) {
-        setExtractedText(response.text);
-      } else {
-        throw new Error(
-          response.error || "Failed to extract text from document"
-        );
-      }
-    } catch (e) {
-      console.error(e);
-      setError(e instanceof Error ? e.message : "An unknown error occurred");
-    }
-    setIsLoading(false);
-  }
-
-  async function handleProcess() {
-    if (!extractedText) return;
-
-    setIsLoading(true);
-    setError(null);
-    setChunks(null);
-
-    try {
-      const response = await processLawText(extractedText);
+      const response = await processLawText(pdfUrl);
       if (response.success && response.chunks) {
         setChunks(response.chunks);
         console.log(response.chunks);
         console.log(JSON.stringify(response.chunks, null, 2));
       } else {
-        throw new Error(response.error || "Failed to process text");
+        throw new Error(response.error || "Failed to process document");
       }
     } catch (e) {
       console.error(e);
@@ -67,9 +42,9 @@ export default function LawParserPage() {
         Law Document Parser
       </h1>
 
-      {!extractedText && (
+      {!chunks && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
-          <form className="space-y-4" onSubmit={handleExtract}>
+          <form className="space-y-4" onSubmit={handleProcess}>
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8">
               <div className="flex flex-col space-y-4">
                 <label className="block">
@@ -133,10 +108,10 @@ export default function LawParserPage() {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       ></path>
                     </svg>
-                    Extracting...
+                    Processing...
                   </div>
                 ) : (
-                  "Extract Text"
+                  "Process Document"
                 )}
               </button>
             </div>
@@ -154,70 +129,6 @@ export default function LawParserPage() {
         </div>
       )}
 
-      {extractedText && !chunks && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Edit Extracted Text</h2>
-          <div className="mb-4">
-            <textarea
-              className="w-full h-96 p-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-gray-200"
-              value={extractedText}
-              onChange={(e) => setExtractedText(e.target.value)}
-            ></textarea>
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              {Intl.NumberFormat("en-US").format(
-                extractedText
-                  .split(/[\s\n]+/)
-                  .map((w) => w.trim())
-                  .filter(Boolean).length
-              )}{" "}
-              words
-            </div>
-          </div>
-
-          <div className="flex justify-between">
-            <button
-              onClick={() => setExtractedText(null)}
-              className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors"
-            >
-              Back
-            </button>
-            <button
-              onClick={handleProcess}
-              disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isLoading ? (
-                <div className="flex items-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Processing...
-                </div>
-              ) : (
-                "Process Text"
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
       {chunks && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
@@ -225,10 +136,11 @@ export default function LawParserPage() {
             <button
               onClick={() => {
                 setChunks(null);
+                setPdfUrl("");
               }}
               className="bg-gray-500 hover:bg-gray-600 text-white py-1 px-3 rounded-lg text-sm transition-colors"
             >
-              Back to Editor
+              Process Another Document
             </button>
           </div>
 

@@ -7,9 +7,18 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: google("gemini-2.5-pro-exp-03-25"),
+    model: google("gemini-2.0-flash-001"),
     system: `You are a helpful assistant. Check your knowledge base before answering any questions.
-Try your best to respond to questions using information from tool calls.`,
+Try your best to respond to questions using information from tool calls.
+Assume all conversations are about Ethiopia unless explicitly specified otherwise. You have knowledge about Ethiopian laws, policies, and resources.
+
+When answering questions:
+- Be concise and organize information with bullet points
+- Use line breaks to improve readability
+- Include direct quotes from relevant law sections or subsections
+- Format quotes as: "Section X.X: [exact text]" or "Subsection X.X.X: [exact text]
+- Respond in markdown format
+"`,
     messages,
     tools: {
       //       addResource: tool({

@@ -1,11 +1,11 @@
-import { law3 } from "@/lib/ai/et-laws/data/law3";
+import { waterLaw } from "@/lib/ai/et-laws/data/water-law";
 import { generateEmbeddingsForEtLaws } from "@/lib/ai/et-laws/generate-embeddings-for-et-laws";
 import { db } from "@/lib/db";
 import { embeddings as embeddingsTable } from "@/lib/db/schema/embeddings";
 import { resources } from "@/lib/db/schema/resources";
 
 async function main() {
-  const embeddings = await generateEmbeddingsForEtLaws(law3);
+  const embeddings = await generateEmbeddingsForEtLaws(waterLaw);
   const content = embeddings.map((e) => e.content).join("\n");
 
   console.log({

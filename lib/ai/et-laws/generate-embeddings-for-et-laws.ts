@@ -5,6 +5,8 @@ import {
   EtLawsSubsection,
 } from "@/lib/types/et-laws-chunk";
 import { embedMany } from "ai";
+import { db } from "@/lib/db";
+import { embeddings } from "@/lib/db/schema/embeddings";
 
 export async function generateEmbeddingsForEtLaws(
   data: EtLawsChunk[]
@@ -30,12 +32,35 @@ export async function generateEmbeddingsForEtLaws(
     });
   });
 
-  const { embeddings } = await embedMany({
-    model: embeddingModel,
-    values: chunks,
-  });
+  // Process in batches of 100
+  const results: { content: string; embedding: number[] }[] = [];
 
-  return embeddings.map((e, i) => ({ content: chunks[i], embedding: e }));
+  for (let i = 0; i < chunks.length; i += 100) {
+    const batch = chunks.slice(i, i + 100);
+    console.log(
+      `Processing batch ${Math.floor(i / 100) + 1} of ${Math.ceil(
+        chunks.length / 100
+      )}`
+    );
+
+    const embeddingsResult = await embedMany({
+      model: embeddingModel,
+      values: batch,
+    });
+
+    // Add each result to our results array
+    for (let j = 0; j < batch.length; j++) {
+      results.push({
+        content: batch[j],
+        embedding: embeddingsResult.embeddings[j],
+      });
+    }
+
+    console.log(`Completed batch ${Math.floor(i / 100) + 1}`);
+  }
+
+  console.log(`Successfully generated ${results.length} embeddings`);
+  return results;
 }
 
 // Helper function to process subsections recursively
