@@ -1,27 +1,25 @@
 import { env } from "@/lib/env.mjs";
-import { sql } from "drizzle-orm";
-
-import { drizzle } from "drizzle-orm/postgres-js";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
-import postgres from "postgres";
+import { drizzle } from "drizzle-orm/libsql";
+import { migrate } from "drizzle-orm/libsql/migrator";
+import { createClient } from "@libsql/client";
 
 const runMigrate = async () => {
-  if (!env.DATABASE_URL) {
-    throw new Error("DATABASE_URL is not defined");
+  if (!env.TURSO_DATABASE_URL) {
+    throw new Error("TURSO_DATABASE_URL is not defined");
   }
 
-  const connection = postgres(env.DATABASE_URL, { max: 1 });
+  const client = createClient({
+    url: env.TURSO_DATABASE_URL,
+    authToken: env.TURSO_AUTH_TOKEN,
+  });
 
-  const db = drizzle(connection);
+  const db = drizzle(client);
 
   console.log("⏳ Running migrations...");
 
   const start = Date.now();
 
-  // First ensure the pgvector extension is enabled
-  await db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector;`);
-
-  await migrate(db, { migrationsFolder: "lib/db/migrations" });
+  await migrate(db, { migrationsFolder: "drizzle" });
 
   const end = Date.now();
 

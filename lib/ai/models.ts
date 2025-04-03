@@ -1,6 +1,6 @@
-import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { env } from "../env.mjs";
 
 export const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY,
+  apiKey: env.GEMINI_API_KEY,
 });

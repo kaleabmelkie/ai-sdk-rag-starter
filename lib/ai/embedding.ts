@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { embeddings } from "@/lib/db/schema/embeddings";
 import { embed } from "ai";
-import { cosineDistance, desc, gt, sql } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { google } from "./models";
 
 export const embeddingModel = google.textEmbeddingModel("text-embedding-004", {
@@ -14,26 +14,51 @@ export const findRelevantContent = async (userQuery: string) => {
     value: userQuery,
   });
 
-  const similarity = sql<number>`1 - (${cosineDistance(
-    embeddings.embedding,
-    userQueryEmbedding
-  )})`;
+  // Just get all embeddings and filter in memory
+  const allEmbeddings = await db.select().from(embeddings).limit(200).execute();
 
-  // Set ef_search parameter for maximum accuracy with HNSW (disregarding performance)
-  await db.execute(sql`SET hnsw.ef_search = 500;`);
+  // Calculate cosine similarity for each result
+  const results = allEmbeddings.map((result) => {
+    const resultEmbedding = result.embedding as number[];
+    const similarity = calculateCosineSimilarity(
+      userQueryEmbedding,
+      resultEmbedding
+    );
+    return {
+      name: result.content,
+      similarity,
+    };
+  });
 
-  const similarGuides = await db
-    .select({ name: embeddings.content, similarity })
-    .from(embeddings)
-    .where(gt(similarity, 0.4)) // Slightly lower threshold for better recall
-    .orderBy((t) => desc(t.similarity))
-    .limit(200) // Retrieve more candidates initially
-    .execute();
+  // Sort by similarity and filter out low scores
+  const sortedResults = results
+    .filter((r) => r.similarity > 0.4)
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 14);
 
-  // Take top 14 with highest confidence
-  const topResults = similarGuides.slice(0, 14);
+  console.log({ topResults: sortedResults }); // TODO: Remove
 
-  console.log({ topResults }); // TODO: Remove
-
-  return topResults;
+  return sortedResults;
 };
+
+// Helper function to calculate cosine similarity
+function calculateCosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    throw new Error("Vectors must have the same length");
+  }
+
+  let dotProduct = 0;
+  let aMagnitude = 0;
+  let bMagnitude = 0;
+
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    aMagnitude += a[i] * a[i];
+    bMagnitude += b[i] * b[i];
+  }
+
+  aMagnitude = Math.sqrt(aMagnitude);
+  bMagnitude = Math.sqrt(bMagnitude);
+
+  return dotProduct / (aMagnitude * bMagnitude);
+}

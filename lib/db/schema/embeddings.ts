@@ -1,24 +1,23 @@
 import { resources } from "@/lib/db/schema/resources";
 import { nanoid } from "@/lib/utils";
-import { index, pgTable, text, varchar, vector } from "drizzle-orm/pg-core";
+import { index, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-export const embeddings = pgTable(
+export const embeddings = sqliteTable(
   "embeddings",
   {
-    id: varchar("id", { length: 21 })
+    id: text("id")
       .primaryKey()
       .$defaultFn(() => nanoid()),
-    resourceId: varchar("resource_id", { length: 21 }).references(
-      () => resources.id,
-      { onDelete: "cascade" }
-    ),
+    resourceId: text("resource_id").references(() => resources.id, {
+      onDelete: "cascade",
+    }),
     content: text("content").notNull(),
-    embedding: vector("embedding", { dimensions: 768 }).notNull(),
+    // Turso has built-in vector search capabilities
+    // We're storing the embedding as a JSON string
+    embedding: text("embedding", { mode: "json" }).notNull(),
   },
   (table) => ({
-    embeddingIndex: index("embeddingIndex").using(
-      "hnsw",
-      table.embedding.op("vector_cosine_ops")
-    ),
+    // Turso supports full-text search natively
+    contentIndex: index("contentIndex").on(table.content),
   })
 );
